@@ -1,0 +1,6 @@
+GCLOUD_LOCATION: "us-central1"
+GCLOUD_PROJECT_ID: "hack2skill-raseed"
+BACKEND_URL: "http://localhost:8081/chat"
+STORAGE_BUCKET_NAME: "personal-expense-assistant-raseed"
+DB_COLLECTION_NAME: "personal-expense-assistant-receipts"
+# FIRESTORE_DATABASE_ID: "raseed-firebase-id"
