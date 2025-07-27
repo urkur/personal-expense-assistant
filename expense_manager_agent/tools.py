@@ -801,3 +801,113 @@ def categorize_existing_receipts(user_id: str = "default_user") -> str:
         
     except Exception as e:
         raise Exception(f"Error categorizing existing receipts: {str(e)}")
+
+
+def add_to_google_wallet(
+    receipt_id: str, 
+    user_id: str = "default_user"
+) -> str:
+    """
+    Add a receipt to Google Wallet for tracking and easy access.
+    
+    Args:
+        receipt_id (str): The unique identifier of the receipt to add to Google Wallet.
+        user_id (str, optional): The user identifier for the receipts. Defaults to "default_user".
+        
+    Returns:
+        str: A success message with confirmation details and a shareable link.
+        
+    Raises:
+        Exception: If the operation fails or the receipt doesn't exist.
+    """
+    try:
+        # Sanitize receipt ID
+        receipt_id = sanitize_image_id(receipt_id)
+        
+        # Get receipt data
+        receipt_data = get_receipt_data_by_image_id(receipt_id)
+        
+        if not receipt_data:
+            raise Exception(f"Receipt with ID {receipt_id} not found")
+        
+        # Import the wallet implementation
+        try:
+            from google_wallet_implementation import GoogleWalletPassManager
+        except ImportError as e:
+            logger.error(f"Failed to import GoogleWalletPassManager: {str(e)}")
+            raise Exception("Google Wallet integration is not available")
+            
+        logger.info(f"Adding receipt {receipt_id} to Google Wallet for user {user_id}")
+        
+        # Extract receipt details for Google Wallet
+        store_name = receipt_data.get("store_name", "Unknown Store")
+        transaction_time = receipt_data.get("transaction_time", "")
+        total_amount = receipt_data.get("total_amount", 0.0)
+        currency = receipt_data.get("currency", "USD")
+        
+        # Format date for display
+        try:
+            transaction_date = datetime.datetime.fromisoformat(transaction_time.replace("Z", "+00:00"))
+            formatted_date = transaction_date.strftime("%B %d, %Y")
+        except:
+            formatted_date = transaction_time
+        
+        # Initialize wallet manager
+        wallet_manager = GoogleWalletPassManager(
+            service_account_file='hack2skill-raseed-7655fd0d36ad.json',
+            issuer_id='3388000000022956210'
+        )
+        
+        # Define pass content for a receipt
+        pass_data = {
+            'cardTitle': {
+                'defaultValue': {
+                    'language': 'en-US',
+                    'value': f'Receipt: {store_name}'
+                }
+            },
+            'textModulesData': [
+                {
+                    'header': 'Store',
+                    'body': store_name,
+                    'id': 'store_name'
+                },
+                {
+                    'header': 'Date',
+                    'body': formatted_date,
+                    'id': 'date'
+                },
+                {
+                    'header': 'Amount',
+                    'body': f'{currency} {total_amount:.2f}',
+                    'id': 'amount'
+                },
+                {
+                    'header': 'Receipt ID',
+                    'body': receipt_id,
+                    'id': 'receipt_id'
+                }
+            ],
+            'barcode': {
+                'type': 'QR_CODE',
+                'value': f'https://expense-assistant.example.com/receipt/{receipt_id}'
+            }
+        }
+        
+        # Generate shareable link
+        pass_object_id = f'receipt_{receipt_id}'
+        share_link = wallet_manager.create_jwt_new_pass(
+            'test', 
+            pass_object_id, 
+            pass_data
+        )
+        
+        if not share_link:
+            raise Exception("Failed to generate Google Wallet pass link")
+        
+        # Return success message with the link
+        return f"Receipt added to Google Wallet successfully. You can now access your {store_name} receipt dated {formatted_date} in your Google Wallet app.\n\nTo add to your Google Wallet, use this link: {share_link}"
+        
+    except Exception as e:
+        logger.error(f"Error adding receipt to Google Wallet: {str(e)}")
+        raise Exception(f"Failed to add receipt to Google Wallet: {str(e)}")
