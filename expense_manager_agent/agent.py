@@ -6,6 +6,9 @@ from expense_manager_agent.tools import (
     search_receipts_by_metadata_filter,
     search_relevant_receipts_by_natural_language_query,
     get_receipt_data_by_image_id,
+    search_by_category,
+    get_category_summary,
+    categorize_existing_receipts,
 )
 from expense_manager_agent.callbacks import modify_image_data_in_history
 import os
@@ -36,6 +39,9 @@ root_agent = Agent(
         get_receipt_data_by_image_id,
         search_receipts_by_metadata_filter,
         search_relevant_receipts_by_natural_language_query,
+        search_by_category,
+        get_category_summary,
+        categorize_existing_receipts,
     ],
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
